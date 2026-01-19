@@ -10,53 +10,54 @@ from sentence_transformers import SentenceTransformer
 GEMINI_API_KEY = st.secrets.get("GEMINI_API_KEY", "")
 genai.configure(api_key=GEMINI_API_KEY)
 
-# Project Constants [cite: 27, 28, 35]
-MODEL_NAME = "gemini-1.5-flash" 
-EMBED_MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
-DATA_DIR = "data/"
+# Project Constants
+MODEL_NAME = "gemini-1.5-flash" # [cite: 27]
+EMBED_MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2" # [cite: 28]
+# CHANGE: Ab folder ki bajaye current directory check hogi
+DATA_DIR = "./" 
 
 st.set_page_config(page_title="NLPAssist+", page_icon="🎓")
 st.title("🎓 NLPAssist+ (CCP Project)")
 
-# --- 2. INGESTION ENGINE ---
+# --- 2. INGESTION ENGINE (Paragraph-based splitting) [cite: 33, 36] ---
 @st.cache_resource
 def build_knowledge_base():
     embed_model = SentenceTransformer(EMBED_MODEL_NAME)
     documents, filenames = [], []
     
-    # Check if data directory exists [cite: 35]
-    if os.path.exists(DATA_DIR):
-        for file in os.listdir(DATA_DIR):
-            if file.endswith(".txt"):
-                with open(os.path.join(DATA_DIR, file), "r", encoding="utf-8") as f:
-                    # Splitting by double newlines as per your CCP report [cite: 36]
-                    chunks = f.read().split("\n\n")
-                    for chunk in chunks:
-                        if chunk.strip():
-                            documents.append(chunk.strip())
-                            filenames.append(file)
+    # Current directory mein files dhoondna 
+    for file in os.listdir(DATA_DIR):
+        # Sirf .txt files read karna aur code files ko ignore karna
+        if file.endswith(".txt") and file != "requirements.txt":
+            with open(os.path.join(DATA_DIR, file), "r", encoding="utf-8") as f:
+                # Double newline split strategy as per your report [cite: 36]
+                chunks = f.read().split("\n\n")
+                for chunk in chunks:
+                    if chunk.strip():
+                        documents.append(chunk.strip())
+                        filenames.append(file)
     
-    # Create FAISS Index only if documents are found [cite: 41, 59]
+    # Create FAISS Index [cite: 29, 41]
     if documents:
         embeddings = embed_model.encode(documents)
-        dimension = embeddings.shape[1]
+        dimension = embeddings.shape[1] # 384 dimensions [cite: 41]
         index = faiss.IndexFlatL2(dimension)
         index.add(np.array(embeddings).astype('float32'))
         return index, documents, filenames, embed_model
     return None, [], [], embed_model
 
-# Initialize the system [cite: 59, 69]
+# Initialize the system [cite: 59, 60]
 index, docs, sources, embed_model = build_knowledge_base()
 
-# --- 3. RAG PIPELINE LOGIC ---
+# --- 3. RAG PIPELINE LOGIC [cite: 18, 23] ---
 def generate_rag_response(query):
-    # CRITICAL FIX: Check if index exists to prevent AttributeError [cite: 21, 45]
+    # CRITICAL FIX: Empty index check
     if index is None:
-        return "⚠️ Knowledge base empty! Please ensure the 'data/' folder on GitHub contains .txt files.", []
+        return "⚠️ Knowledge base empty! Please ensure your .txt files are uploaded to GitHub (Main Directory).", []
     
-    # 1. Retrieval: Search top 3 relevant chunks [cite: 45]
+    # 1. Retrieval: Vectorize query and search FAISS [cite: 44, 45]
     query_vec = embed_model.encode([query])
-    _, I = index.search(np.array(query_vec).astype('float32'), k=3)
+    _, I = index.search(np.array(query_vec).astype('float32'), k=3) # Top-3 chunks [cite: 45]
     
     context_chunks = []
     found_sources = []
@@ -68,10 +69,10 @@ def generate_rag_response(query):
     context_text = "\n\n".join(context_chunks)
     unique_sources = list(set(found_sources))
 
-    # 2. Generation: Construct Prompt and call Gemini [cite: 46, 49]
+    # 2. Generation: Construct Prompt for Gemini [cite: 46, 49]
     prompt = f"""You are a helpful university assistant called NLPAssist+. 
     Use the following context to answer the student's question accurately.
-    If the answer is not in the context, politely say you don't know.
+    If the answer is not in the context, politely say you don't know. [cite: 65]
 
     Context:
     {context_text}
@@ -81,7 +82,7 @@ def generate_rag_response(query):
     
     try:
         model = genai.GenerativeModel(MODEL_NAME)
-        # Parameters from your report: top_p=0.9, temp=0.7 [cite: 50]
+        # Parameters: top_p=0.9, temp=0.7 as per CCP report [cite: 50]
         response = model.generate_content(
             prompt,
             generation_config=genai.types.GenerationConfig(
@@ -92,27 +93,25 @@ def generate_rag_response(query):
         )
         return response.text, unique_sources
     except Exception as e:
-        return f"Error calling Gemini API: {str(e)}", []
+        return f"Error: {str(e)}", []
 
-# --- 4. CHAT INTERFACE ---
+# --- 4. CHAT UI [cite: 31, 61] ---
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Display chat history [cite: 61]
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-# User Input [cite: 21]
 if prompt := st.chat_input("Ask about university policies..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    with st.spinner("Analyzing documents..."):
+    with st.spinner("Retrieving Answer..."):
         answer, refs = generate_rag_response(prompt)
         
-        # Format response with citations as per your screenshots [cite: 61, 52]
+        # Format with sources like your demo [cite: 52, 61]
         if refs:
             full_reply = f"{answer}\n\n**Sources:** {', '.join(refs)}"
         else:
