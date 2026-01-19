@@ -1,0 +1,23 @@
+What is the policy for late assignment submission?
+Assignments submitted within 24 hours of the deadline will receive a 10% penalty. Submissions made after 24 hours will not be accepted and will be marked as zero.
+
+How can I apply for an exchange program?
+To apply for an exchange program, students must get in touch with the International Office. They are responsible for handling all applications and eligibility criteria for these programs.
+
+Are exchange students graded locally?
+For exchange students, the grading system will be determined by the rules of the institution where you are studying abroad. The credits will be transferred based on the host university's transcript.
+
+What is the minimum attendance requirement to sit in exams?
+Students must maintain a minimum of 75% attendance in each course to be eligible to appear in the final examinations. Failure to meet this will result in an 'F' grade.
+
+How is the GPA calculated in the BS (AI) program?
+GPA is calculated on a 4.0 scale based on the marks obtained in assignments, quizzes, midterms, and final exams. Each course weightage is defined in the specific course outline.
+
+What is NLPAssist+?
+NLPAssist+ is an intelligent, LLM-powered Question Answering system using Retrieval-Augmented Generation (RAG). It provides students with accurate answers based on official university documents.
+
+Who developed NLPAssist+?
+NLPAssist+ was developed by Muhammad Asad (Reg ID: 64556), Muhammad Ahmed (Reg ID: 58909), and Muhammad Fawwaz Khan (Reg ID: 64538) as part of their NLP project.
+
+What should I do if I miss a midterm exam due to a medical emergency?
+If a student misses a midterm due to a valid medical reason, they must submit a medical certificate verified by the University Medical Officer within 3 days of the exam to apply for a re-take.
